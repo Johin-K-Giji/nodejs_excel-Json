@@ -1,24 +1,25 @@
 const express = require('express'); 
 const xlsx = require('xlsx'); 
-const fs = require('fs'); 
+const axios = require('axios')
 
 const app = express();
 const port = 3000; 
 
-// Function to read the Excel file and parse the sheet to JSON
+
 const readExcelFile = () => {
-    const excelData = xlsx.readFile('./data/input_excel_file_v1.xlsx'); // Load the Excel file
-    const sheetName = excelData.SheetNames[0]; // Get the first sheet name
-    console.log("Sheet Names:", excelData.SheetNames); // Log available sheet names for debugging
-    const sheetData = xlsx.utils.sheet_to_json(excelData.Sheets[sheetName]); // Convert sheet to JSON
-    return sheetData; // Return parsed data
+    const excelData = xlsx.readFile('./data/input_excel_file_v1.xlsx'); 
+    const sheetName = excelData.SheetNames[0];
+    console.log("Sheet Names:", excelData.SheetNames); 
+    const sheetData = xlsx.utils.sheet_to_json(excelData.Sheets[sheetName]); 
+    return sheetData; 
 }
 
-// Function to transform the raw data into the required format
+
+
 function transformData(data) {
-    const customers = []; // This will hold all customer data
+    const customers = []; 
   
-    // Loop through each row of data
+
     data.forEach((row) => {
         const parameter = {
             parameterName: row["Parameter Name"],
@@ -38,7 +39,7 @@ function transformData(data) {
             const panel = customer.panelList.find(p => p.panel_code === row["panel_code"]);
   
             if (panel) {
-                panel.parameters.push(parameter); l
+                panel.parameters.push(parameter); 
             } else {
                 customer.panelList.push({
                     panel_name: row["panel_name"],
@@ -63,12 +64,37 @@ function transformData(data) {
 }
 
 
-app.get('/read-excel', (req, res) => {
+app.get('/read-excel', async (req, res) => {
     console.log("Reading and transforming Excel file...");
-    const rawData = readExcelFile();
-    const transformedData = transformData(rawData); 
-    res.json(transformedData); 
+    const rawData = readExcelFile();  
+    const transformedData = transformData(rawData);  
+
+    try {
+        
+        const response = await axios.post('https://stage.myhealthvectors.com/testserver/receive-report', transformedData, {
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+
+        console.log("API Response:", response.data);
+
+        res.json({
+            message: "Data successfully sent to API",
+            apiResponse: response.data
+        });
+    } catch (error) {
+        console.error("Error sending data to API:", error.message);
+        res.status(500).json({
+            message: "Failed to send data to API",
+            error: error.message
+        });
+    }
 });
+
+
+
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
