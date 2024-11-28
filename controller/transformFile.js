@@ -1,9 +1,13 @@
 
+const fs = require('fs');
+
+const collectionName = 'customers';
 
 const transformData = (data)=>{
     const customers = [];
 
     data.forEach((row) => {
+
         const parameter ={
             parameterName: row["Parameter Name"],
             unit: row["Units"],
@@ -40,9 +44,17 @@ const transformData = (data)=>{
                 });
             }
 
+
+
     });
+
+    
+    
 
     return customers;
 }
+
+
+
 
 module.exports = transformData
